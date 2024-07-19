@@ -19,7 +19,7 @@ private:
 
 public:
     MotorDriver(const volatile float &target_voltage_, const volatile float &supply_voltage_, MotorConnectionParams *mconnp)
-        : target_voltage(target_voltage_), supply_voltage(supply_voltage_), MotorConnectionParams(*mconnp)
+        : MotorConnectionParams(*mconnp), target_voltage(target_voltage_), supply_voltage(supply_voltage_)
     {
         pinMode(IN, INPUT);
         pinMode(PWM, INPUT);
@@ -28,18 +28,20 @@ public:
     void tick() override
     {
         cli();
-        const int16_t pwm = 255.0 * target_voltage / supply_voltage * MOTOR_DIR;
+        const int16_t pwm = 255.0 * constrain(target_voltage / supply_voltage, -1.0, 1.0) * MOTOR_DIR;
         sei();
 
-        if (pwm >= 0)
+        const int16_t sat_pwm = constrain(pwm, -255, 255);
+
+        if (sat_pwm >= 0)
         {
             digitalWrite(IN, LOW);
-            analogWrite(PWM, pwm);
+            analogWrite(PWM, sat_pwm);
         }
         else
         {
             digitalWrite(IN, HIGH);
-            analogWrite(PWM, 255 + pwm);
+            analogWrite(PWM, 255 + sat_pwm);
         }
     }
 };
